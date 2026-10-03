@@ -23,9 +23,39 @@ class MainActivity:ComponentActivity(){override fun onCreate(b:Bundle?){super.on
 @Composable fun Members(r:SupabaseRepository,a:JamAssociation?,changed:()->Unit){if(a==null){Text("اختر جمعية أولاً");return};var xs by remember(a.id){mutableStateOf<List<JamMember>>(emptyList())};var add by remember{mutableStateOf(false)};LaunchedEffect(a.id){Thread{try{val z=r.members(a.id);ui{xs=z}}catch(_:Exception){}}.start()};Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("الأعضاء");Button({add=true}){Text("إضافة")}};LazyColumn{items(xs){m->Card(Modifier.fillMaxWidth()){Text("#"+m.order+"  "+m.name.ifBlank{"عضو"},Modifier.padding(12.dp))}}};if(add)AddMember(r,a,{add=false;changed()},{add=false})}
 @Composable fun AddMember(r:SupabaseRepository,a:JamAssociation,done:()->Unit,cancel:()->Unit){var e by remember{mutableStateOf("")};var o by remember{mutableStateOf("")};var msg by remember{mutableStateOf("")};AlertDialog(onDismissRequest=cancel,title={Text("إضافة عضو")},text={Column{OutlinedTextField(e,{e=it},label={Text("البريد الإلكتروني")});OutlinedTextField(o,{o=it},label={Text("ترتيب الاستلام")});Text(msg)}},confirmButton={TextButton({val n=o.toIntOrNull();if(n==null){msg="ترتيب غير صحيح";return@TextButton};Thread{try{r.addMemberByEmail(a.id,e,n);ui(done)}catch(x:Exception){ui{msg=x.message?:"تعذر الإضافة"}}}.start()}){Text("إضافة")}},dismissButton={TextButton(cancel){Text("إلغاء")}})}
 @Composable fun Pays(r:SupabaseRepository,a:JamAssociation?){if(a==null){Text("اختر جمعية أولاً");return};var xs by remember(a.id){mutableStateOf<List<JamInstallment>>(emptyList())};var pay by remember{mutableStateOf<JamInstallment?>(null)};var msg by remember{mutableStateOf("")};fun reload(){Thread{try{val z=r.installments(a.id);ui{xs=z}}catch(x:Exception){ui{msg=x.message?:"خطأ"}}}.start()};LaunchedEffect(a.id){reload()};Text("الدفعات",style=MaterialTheme.typography.headlineSmall);Button({Thread{try{r.generateSchedule(a.id);reload()}catch(x:Exception){ui{msg=x.message?:"تعذر إنشاء الجدول"}}}.start()}){Text("إنشاء جدول الدفعات")};Text(msg);LazyColumn{items(xs){i->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(10.dp)){Text("الدورة "+i.cycleNumber+" — "+i.memberName.ifBlank{"عضو"});Text(i.dueDate+" | "+i.paidAmount+"/"+i.amount+" | "+i.status);if(i.status!="paid")TextButton({pay=i}){Text("تسجيل دفعة")}}}}};if(pay!=null)Pay(r,pay!!,{pay=null;reload()},{pay=null})}
-@Composable fun Pay(r:SupabaseRepository,i:JamInstallment,done:()->Unit,cancel:()->Unit){var amount by remember{mutableStateOf((i.amount-i.paidAmount).toString())};var msg by remember{mutableStateOf("")};AlertDialog(onDismissRequest=cancel,title={Text("تسجيل دفعة")},text={Column{OutlinedTextField(amount,{amount=it},label={Text("المبلغ")});Text(msg)}},confirmButton={TextButton({val n=amount.toDoubleOrNull();if(n==null||n<=0){msg="مبلغ غير صحيح";return@TextButton};Thread{try{val x=r.recordPayment(i.id,i.memberId,n,null);ui{msg="تم. الإيصال: "+x.receiptNo;done()}}catch(x:Exception){ui{msg=x.message?:"تعذر التسجيل"}}}.start()}){Text("حفظ")}},dismissButton={TextButton(cancel){Text("إلغاء")}})}
-
-@Composable fun Create(r:SupabaseRepository,done:()->Unit,cancel:()->Unit){
- var n by remember{mutableStateOf("")};var amount by remember{mutableStateOf("")};var members by remember{mutableStateOf("10")};var cycles by remember{mutableStateOf("10")};var date by remember{mutableStateOf(java.time.LocalDate.now().toString())};var msg by remember{mutableStateOf("")}
- AlertDialog(onDismissRequest=cancel,title={Text("جمعية جديدة")},text={Column{OutlinedTextField(n,{n=it},label={Text("الاسم")});OutlinedTextField(amount,{amount=it},label={Text("القسط")});OutlinedTextField(members,{members=it},label={Text("الأعضاء")});OutlinedTextField(cycles,{cycles=it},label={Text("الدورات")});OutlinedTextField(date,{date=it},label={Text("تاريخ البداية")});Text(msg)}},confirmButton={TextButton({val x=amount.toDoubleOrNull();val m=members.toIntOrNull();val c=cycles.toIntOrNull();if(n.isBlank()||x==null||m==null||c==null){msg="بيانات غير صحيحة";return@TextButton};Thread{try{r.createAssociation(n,x,m,c,date);ui(done)}catch(e:Exception){ui{msg=e.message?:"تعذر الإنشاء"}}}.start()}){Text("حفظ")}},dismissButton={TextButton(cancel){Text("إلغاء")}})
+@Composable fun Pay(r:SupabaseRepository,i:JamInstallment,done:()->Unit,cancel:()->Unit){
+ val context=androidx.compose.ui.platform.LocalContext.current
+ var amount by remember{mutableStateOf((i.amount-i.paidAmount).toString())}
+ var msg by remember{mutableStateOf("")}
+ var result by remember{mutableStateOf<JamPaymentResult?>(null)}
+ AlertDialog(
+  onDismissRequest=cancel,
+  title={Text("تسجيل دفعة")},
+  text={
+   Column{
+    OutlinedTextField(amount,{amount=it},label={Text("المبلغ")})
+    if(msg.isNotBlank())Text(msg)
+   }
+  },
+  confirmButton={
+   TextButton({
+    val n=amount.toDoubleOrNull()
+    if(n==null||n<=0){msg="مبلغ غير صحيح";return@TextButton}
+    Thread{
+     try{
+      val x=r.recordPayment(i.id,i.memberId,n,null)
+      ui{result=x;msg="تم تسجيل الدفعة. الإيصال: "+x.receiptNo}
+     }catch(x:Exception){ui{msg=x.message?:"تعذر التسجيل"}}
+    }.start()
+   }){Text("حفظ")}
+  },
+  dismissButton={
+   if(result!=null)TextButton({
+    ReceiptUtils.createAndShareReceipt(context,result!!.receiptNo,"جمعية",""+i.memberName,i.cycleNumber,result!!.paidAmount,result!!.remaining)
+    done()
+   }){Text("مشاركة PDF")}
+   else TextButton(cancel){Text("إلغاء")}
+  }
+ )
 }
+
