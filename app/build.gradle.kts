@@ -15,6 +15,13 @@ android {
         buildConfigField("String", "SUPABASE_URL", "\"https://irknxbbmhibutriaagfw.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable__YUC1HHjJAtdYqQUcwecgQ_H0-RuL1g\"")
     }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
     signingConfigs { getByName("debug") }
     buildTypes { getByName("release") { signingConfig = signingConfigs.getByName("debug"); isMinifyEnabled = false } }
     buildFeatures { compose = true; buildConfig = true }
