@@ -3,8 +3,8 @@ name: Build Release APK
 on:
   workflow_dispatch:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -57,7 +57,7 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/Jam3yati-v1.2.0-release.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/Jam3yati-v2.0.0-offline-release.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
