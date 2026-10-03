@@ -23,7 +23,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(b:Bundle?){super.on
 @Composable fun App(){val c=androidx.compose.ui.platform.LocalContext.current;val r=remember{SupabaseRepository(c)};var ok by remember{mutableStateOf(r.isSignedIn())};LaunchedEffect(ok){if(ok){val work=PeriodicWorkRequestBuilder<PaymentReminderWorker>(1,TimeUnit.DAYS).build();WorkManager.getInstance(c).enqueueUniquePeriodicWork("payment_reminders",ExistingPeriodicWorkPolicy.UPDATE,work);if(android.os.Build.VERSION.SDK_INT>=33 && c is android.app.Activity){c.requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"),1001)}}};if(!ok)Auth(r){ok=true}else Main(r){r.signOut();ok=false}}
 @Composable fun Auth(r:SupabaseRepository,done:()->Unit){var e by remember{mutableStateOf("")};var p by remember{mutableStateOf("")};var login by remember{mutableStateOf(true)};var msg by remember{mutableStateOf("")};Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.Center){Text("جمعياتي",style=MaterialTheme.typography.headlineLarge);OutlinedTextField(e,{e=it},label={Text("البريد")});OutlinedTextField(p,{p=it},label={Text("كلمة المرور")});Button(onClick={Thread{try{val x=if(login)r.signIn(e.trim(),p)else r.signUp(e.trim(),p);ui{msg=x;if(r.isSignedIn())done()}}catch(x:Exception){ui{msg=x.message?:"خطأ"}}}.start()}){Text(if(login)"دخول" else "إنشاء حساب")};TextButton({login=!login}){Text(if(login)"إنشاء حساب" else "تسجيل الدخول")};Text(msg)}}
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun Main(r:SupabaseRepository,logout:()->Unit){var xs by remember{mutableStateOf<List<JamAssociation>>(emptyList())};var a by remember{mutableStateOf<JamAssociation?>(null)};var tab by remember{mutableStateOf(0)};var refresh by remember{mutableStateOf(0)};var create by remember{mutableStateOf(false)};LaunchedEffect(refresh){Thread{try{val z=r.associations();ui{xs=z}}catch(_:Exception){}}.start()};Scaffold(topBar={TopAppBar(title={Text(a?.name?:"جمعياتي")},actions={TextButton(logout){Text("خروج")}})},bottomBar={NavigationBar{listOf("الرئيسية","الجمعيات","الأعضاء","الدفعات").forEachIndexed{i,t->NavigationBarItem(tab==i,{tab=i},{},label={Text(t)})}}}){p->Column(Modifier.padding(p).padding(16.dp)){when(tab){0->Dash(xs){a=it;tab=1};1->Column{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("الجمعيات");Button({create=true}){Text("جمعية جديدة")}};Assoc(xs){a=it}};2->Members(r,a){refresh++};3->Pays(r,a)}}}}
+@Composable fun Main(r:SupabaseRepository,logout:()->Unit){var xs by remember{mutableStateOf<List<JamAssociation>>(emptyList())};var a by remember{mutableStateOf<JamAssociation?>(null)};var tab by remember{mutableStateOf(0)};var refresh by remember{mutableStateOf(0)};var create by remember{mutableStateOf(false)};LaunchedEffect(refresh){Thread{try{val z=r.associations();ui{xs=z}}catch(_:Exception){}}.start()};Scaffold(topBar={TopAppBar(title={Text(a?.name?:"جمعياتي")},actions={TextButton(logout){Text("خروج")}})},bottomBar={NavigationBar{listOf("الرئيسية","الجمعيات","الأعضاء","الدفعات").forEachIndexed{i,t->NavigationBarItem(tab==i,{tab=i},{},label={Text(t)})}}}){p->Column(Modifier.padding(p).padding(16.dp)){when(tab){0->Dash(xs){a=it;tab=1};1->Column{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("الجمعيات");Button({create=true}){Text("جمعية جديدة")}};Assoc(xs){a=it}};2->Members(r,a){refresh++};3->Pays(r,a)}}};if(create)CreateAssociation(r,{create=false;refresh++},{create=false})}
 @Composable fun Dash(xs:List<JamAssociation>,open:(JamAssociation)->Unit){Text("لوحة المتابعة",style=MaterialTheme.typography.headlineSmall);Text("عدد الجمعيات: "+xs.size);xs.forEach{z->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(10.dp)){Text(z.name);Text("القسط: "+z.installment+" | الأعضاء: "+z.memberCount);TextButton({open(z)}){Text("فتح")}}}}}
 @Composable fun Assoc(xs:List<JamAssociation>,open:(JamAssociation)->Unit){Text("الجمعيات",style=MaterialTheme.typography.headlineSmall);LazyColumn{items(xs){z->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(10.dp)){Text(z.name);Text("الأعضاء: "+z.memberCount+" | الدورات: "+z.cycleCount);TextButton({open(z)}){Text("إدارة")}}}}}}
 @Composable fun Members(r:SupabaseRepository,a:JamAssociation?,changed:()->Unit){if(a==null){Text("اختر جمعية أولاً");return};var xs by remember(a.id){mutableStateOf<List<JamMember>>(emptyList())};var add by remember{mutableStateOf(false)};LaunchedEffect(a.id){Thread{try{val z=r.members(a.id);ui{xs=z}}catch(_:Exception){}}.start()};Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("الأعضاء");Button({add=true}){Text("إضافة")}};LazyColumn{items(xs){m->Card(Modifier.fillMaxWidth()){Text("#"+m.order+"  "+m.name.ifBlank{"عضو"},Modifier.padding(12.dp))}}};if(add)AddMember(r,a,{add=false;changed()},{add=false})}
@@ -82,3 +82,32 @@ class MainActivity:ComponentActivity(){override fun onCreate(b:Bundle?){super.on
  )
 }
 
+
+
+@Composable
+fun CreateAssociation(r: SupabaseRepository, done:()->Unit, cancel:()->Unit) {
+ var name by remember{mutableStateOf("")}
+ var amount by remember{mutableStateOf("")}
+ var members by remember{mutableStateOf("")}
+ var cycles by remember{mutableStateOf("")}
+ var start by remember{mutableStateOf(java.time.LocalDate.now().toString())}
+ var msg by remember{mutableStateOf("")}
+ AlertDialog(
+  onDismissRequest=cancel,
+  title={Text("جمعية جديدة")},
+  text={Column{
+   OutlinedTextField(name,{name=it},label={Text("اسم الجمعية")})
+   OutlinedTextField(amount,{amount=it},label={Text("قيمة القسط")})
+   OutlinedTextField(members,{members=it},label={Text("عدد الأعضاء")})
+   OutlinedTextField(cycles,{cycles=it},label={Text("عدد الدورات")})
+   OutlinedTextField(start,{start=it},label={Text("تاريخ البداية YYYY-MM-DD")})
+   if(msg.isNotBlank())Text(msg)
+  }},
+  confirmButton={TextButton({
+   val n=amount.toDoubleOrNull(); val m=members.toIntOrNull(); val k=cycles.toIntOrNull()
+   if(name.isBlank()||n==null||n<=0||m==null||m<=0||k==null||k<=0){msg="البيانات غير صحيحة";return@TextButton}
+   Thread{try{r.createAssociation(name.trim(),n,m,k,start.trim());ui(done)}catch(x:Exception){ui{msg=x.message?:"تعذر إنشاء الجمعية"}}}.start()
+  }){Text("إنشاء")}},
+  dismissButton={TextButton(cancel){Text("إلغاء")}}
+ )
+}
