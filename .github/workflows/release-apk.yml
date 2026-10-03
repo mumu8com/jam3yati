@@ -49,11 +49,6 @@ jobs:
           fi
       - name: Build signed Release APK
         run: gradle --no-daemon :app:assembleRelease
-        env:
-          JAM3YATI_KEYSTORE: ${{ env.JAM3YATI_KEYSTORE }}
-          JAM3YATI_KEY_ALIAS: ${{ env.JAM3YATI_KEY_ALIAS }}
-          JAM3YATI_KEY_PASSWORD: ${{ env.JAM3YATI_KEY_PASSWORD }}
-          JAM3YATI_STORE_PASSWORD: ${{ env.JAM3YATI_STORE_PASSWORD }}
       - name: Rename APK
         run: |
           mkdir -p dist
