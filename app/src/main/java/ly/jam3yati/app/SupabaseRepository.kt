@@ -11,6 +11,11 @@ import java.net.URLEncoder
 
 data class JamAssociation(val id:String,val name:String,val installment:Double,val frequency:String,val memberCount:Int,val cycleCount:Int)
 
+data class JamMember(val id:String,val userId:String,val name:String,val phone:String?,val order:Int)
+data class JamInstallment(val id:String,val memberId:String,val memberName:String,val cycleNumber:Int,val dueDate:String,val amount:Double,val paidAmount:Double,val status:String)
+data class JamPaymentResult(val paymentId:String,val receiptNo:String,val paidAmount:Double,val remaining:Double)
+
+
 class SupabaseRepository(context:Context){
  private val client=OkHttpClient()
  private val prefs=context.getSharedPreferences("jam3yati_session",Context.MODE_PRIVATE)
@@ -37,6 +42,29 @@ class SupabaseRepository(context:Context){
   val id=URLEncoder.encode(uid(),"UTF-8");val a=JSONArray(request("/rest/v1/associations?select=id,name,installment,frequency,member_count,cycle_count&owner_id=eq."+id+"&order=created_at.desc"))
   return (0 until a.length()).map{val o=a.getJSONObject(it);JamAssociation(o.getString("id"),o.getString("name"),o.getDouble("installment"),o.getString("frequency"),o.getInt("member_count"),o.getInt("cycle_count"))}
  }
+ fun members(associationId:String):List<JamMember>{
+  val a=JSONArray(request("/rest/v1/association_members?select=id,user_id,receiving_order,profiles(full_name,phone)&association_id=eq."+URLEncoder.encode(associationId,"UTF-8")+"&order=receiving_order.asc"))
+  return (0 until a.length()).map{val o=a.getJSONObject(it);val p=o.optJSONObject("profiles");JamMember(o.getString("id"),o.getString("user_id"),p?.optString("full_name","")?:"",p?.optString("phone",null),o.getInt("receiving_order"))}
+ }
+ fun installments(associationId:String):List<JamInstallment>{
+  val q=URLEncoder.encode(associationId,"UTF-8")
+  val a=JSONArray(request("/rest/v1/installments?select=id,member_id,due_date,amount,paid_amount,status,cycles!inner(cycle_number,association_id),association_members!inner(profiles(full_name))&cycles.association_id=eq."+q+"&order=due_date.asc"))
+  return (0 until a.length()).map{val o=a.getJSONObject(it);val cyc=o.getJSONObject("cycles");val mem=o.getJSONObject("association_members").getJSONObject("profiles");JamInstallment(o.getString("id"),o.getString("member_id"),mem.optString("full_name",""),cyc.getInt("cycle_number"),o.getString("due_date"),o.getDouble("amount"),o.optDouble("paid_amount",0.0),o.getString("status"))}
+ }
+ fun generateSchedule(associationId:String):Int{
+  val result=request("/rest/v1/rpc/generate_association_schedule","POST",JSONObject().put("p_association_id",associationId).toString()).trim()
+  return result.toIntOrNull() ?: 0
+ }
+ fun recordPayment(installmentId:String,memberId:String,amount:Double,notes:String?):JamPaymentResult{
+  val o=JSONObject(request("/rest/v1/rpc/record_payment","POST",JSONObject().put("p_installment_id",installmentId).put("p_member_id",memberId).put("p_amount",amount).put("p_notes",notes).toString()))
+  return JamPaymentResult(o.getString("payment_id"),o.getString("receipt_no"),o.getDouble("paid_amount"),o.getDouble("remaining"))
+ }
+ fun createMember(associationId:String,userId:String,order:Int):JamMember{
+  val body=JSONObject().put("association_id",associationId).put("user_id",userId).put("receiving_order",order)
+  val o=JSONArray(request("/rest/v1/association_members?select=id,user_id,receiving_order","POST",body.toString())).getJSONObject(0)
+  return JamMember(o.getString("id"),o.getString("user_id"),"",null,o.getInt("receiving_order"))
+ }
+
  fun createAssociation(name:String,amount:Double,members:Int,cycles:Int,startDate:String):JamAssociation{
   val body=JSONObject().put("owner_id",uid()).put("name",name).put("installment",amount).put("frequency","monthly").put("member_count",members).put("cycle_count",cycles).put("start_date",startDate)
   val o=JSONArray(request("/rest/v1/associations?select=id,name,installment,frequency,member_count,cycle_count","POST",body.toString())).getJSONObject(0)
