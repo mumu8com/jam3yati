@@ -1,6 +1,8 @@
 package ly.jam3yati.app
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -11,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+
+private fun postToMain(block: () -> Unit) = Handler(Looper.getMainLooper()).post(block)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +52,7 @@ private fun AuthScreen(repo: SupabaseRepository, onSuccess: () -> Unit) {
             Thread {
                 try {
                     val result = if (loginMode) repo.signIn(email.trim(), password) else repo.signUp(email.trim(), password)
-                    runOnUiThread { message = result; busy = false; if (repo.isSignedIn()) onSuccess() }
+                    postToMain { message = result; busy = false; if (repo.isSignedIn()) onSuccess() }
                 } catch (e: Exception) {
                     runOnUiThread { message = e.message ?: "حدث خطأ"; busy = false }
                 }
