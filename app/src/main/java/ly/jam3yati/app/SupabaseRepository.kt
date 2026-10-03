@@ -59,6 +59,10 @@ class SupabaseRepository(context:Context){
   val o=JSONObject(request("/rest/v1/rpc/record_payment","POST",JSONObject().put("p_installment_id",installmentId).put("p_member_id",memberId).put("p_amount",amount).put("p_notes",notes).toString()))
   return JamPaymentResult(o.getString("payment_id"),o.getString("receipt_no"),o.getDouble("paid_amount"),o.getDouble("remaining"))
  }
+ fun addMemberByEmail(associationId:String,email:String,order:Int):JamMember{
+  val o=JSONObject(request("/rest/v1/rpc/add_member_by_email","POST",JSONObject().put("p_association_id",associationId).put("p_email",email).put("p_order",order).toString()))
+  return JamMember(o.getString("id"),o.getString("user_id"),"",null,o.getInt("receiving_order"))
+ }
  fun createMember(associationId:String,userId:String,order:Int):JamMember{
   val body=JSONObject().put("association_id",associationId).put("user_id",userId).put("receiving_order",order)
   val o=JSONArray(request("/rest/v1/association_members?select=id,user_id,receiving_order","POST",body.toString())).getJSONObject(0)
