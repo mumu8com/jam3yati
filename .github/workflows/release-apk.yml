@@ -1,0 +1,72 @@
+name: Build Release APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    env:
+      GRADLE_VERSION: '8.10.2'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses >/dev/null || true
+      - name: Ensure Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Prepare signing key
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/jam3yati-signing"
+          if [ -n "${{ secrets.JAM3YATI_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.JAM3YATI_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/jam3yati-signing/release.keystore"
+            echo "JAM3YATI_KEYSTORE=$RUNNER_TEMP/jam3yati-signing/release.keystore" >> "$GITHUB_ENV"
+            echo "JAM3YATI_KEY_ALIAS=${{ secrets.JAM3YATI_KEY_ALIAS }}" >> "$GITHUB_ENV"
+            echo "JAM3YATI_KEY_PASSWORD=${{ secrets.JAM3YATI_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "JAM3YATI_STORE_PASSWORD=${{ secrets.JAM3YATI_STORE_PASSWORD }}" >> "$GITHUB_ENV"
+          else
+            keytool -genkeypair -v -keystore "$RUNNER_TEMP/jam3yati-signing/release.keystore" -alias jam3yati -keyalg RSA -keysize 2048 -validity 10000 -storepass changeit -keypass changeit -dname "CN=Jam3yati Release, OU=Mobile, O=Jam3yati, L=Tripoli, ST=Tripoli, C=LY"
+            echo "JAM3YATI_KEYSTORE=$RUNNER_TEMP/jam3yati-signing/release.keystore" >> "$GITHUB_ENV"
+            echo "JAM3YATI_KEY_ALIAS=jam3yati" >> "$GITHUB_ENV"
+            echo "JAM3YATI_KEY_PASSWORD=changeit" >> "$GITHUB_ENV"
+            echo "JAM3YATI_STORE_PASSWORD=changeit" >> "$GITHUB_ENV"
+          fi
+      - name: Build signed Release APK
+        run: gradle --no-daemon :app:assembleRelease
+        env:
+          JAM3YATI_KEYSTORE: ${{ env.JAM3YATI_KEYSTORE }}
+          JAM3YATI_KEY_ALIAS: ${{ env.JAM3YATI_KEY_ALIAS }}
+          JAM3YATI_KEY_PASSWORD: ${{ env.JAM3YATI_KEY_PASSWORD }}
+          JAM3YATI_STORE_PASSWORD: ${{ env.JAM3YATI_STORE_PASSWORD }}
+      - name: Rename APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/Jam3yati-v1.2.0-release.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jam3yati-APK
+          path: dist/Jam3yati-v1.2.0-release.apk
+          retention-days: 30
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/Jam3yati-v1.2.0-release.apk
