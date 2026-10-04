@@ -61,6 +61,11 @@ class SupabaseRepository(context:Context){
  }
  fun addMemberByEmail(associationId:String,email:String,order:Int):JamMember{
   val m=JamMember(UUID.randomUUID().toString(),UUID.randomUUID().toString(),email.trim(),null,order)
+  val association=associations().firstOrNull{it.id==associationId} ?: error("الجمعية غير موجودة")
+  val existing=members(associationId)
+  require(existing.size < association.memberCount){"تم الوصول إلى عدد أعضاء الجمعية"}
+  require(order in 1..association.memberCount){"ترتيب العضو غير صحيح"}
+  require(existing.none{it.order==order}){"ترتيب العضو مستخدم"}
   val a=arr("members");a.put(JSONObject().put("id",m.id).put("userId",m.userId).put("associationId",associationId).put("name",m.name).put("order",m.order));save("members",a);return m
  }
  fun createMember(associationId:String,userId:String,order:Int)=addMemberByEmail(associationId,userId,order)
