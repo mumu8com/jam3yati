@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.work.*
 import java.util.concurrent.TimeUnit
 
@@ -104,12 +105,18 @@ class MainActivity:ComponentActivity(){
 }
 
 @Composable fun Dash(xs:List<JamAssociation>,open:(JamAssociation)->Unit){
- Text("لوحة المتابعة",style=MaterialTheme.typography.headlineSmall)
- Text("بيانات محفوظة على الجهاز")
- Text("عدد الجمعيات: "+xs.size)
- xs.forEach{z->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(10.dp)){Text(z.name);Text("القسط: "+z.installment+" | الأعضاء: "+z.memberCount);TextButton({open(z)}){Text("فتح")}}}}
-}
-@Composable fun Assoc(xs:List<JamAssociation>,open:(JamAssociation)->Unit){
+ Column(verticalArrangement=Arrangement.spacedBy(14.dp)){
+  Text("مرحباً بك",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  Text("لوحة التحكم",style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold)
+  Text("إدارة جمعياتك المالية بسهولة",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
+   Card(Modifier.weight(1f),shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp)){Text("●",fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.primary);Text(xs.size.toString(),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text("الجمعيات",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}
+   Card(Modifier.weight(1f),shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp)){Text("✓",fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.primary);Text("محلي",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text("بدون إنترنت",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}
+  }
+  Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer)){Column(Modifier.padding(18.dp)){Text("بياناتك محفوظة على الجهاز",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onPrimaryContainer);Spacer(Modifier.height(4.dp));Text("إدارة الأعضاء والدفعات وإنشاء الجداول دون اتصال بالإنترنت.",color=MaterialTheme.colorScheme.onPrimaryContainer)}}
+  if(xs.isNotEmpty()){Text("جمعياتك",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold);xs.forEach{z->Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp),elevation=CardDefaults.cardElevation(defaultElevation=2.dp)){Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){Surface(shape=RoundedCornerShape(14.dp),color=MaterialTheme.colorScheme.secondaryContainer){Text("د.ل",Modifier.padding(10.dp),fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onSecondaryContainer)};Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)){Text(z.name,fontWeight=FontWeight.Bold);Text(z.installment.toString()+" د.ل • "+z.memberCount+" عضو • "+z.cycleCount+" دورة",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)};TextButton({open(z)}){Text("فتح")}}}}}else{Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp)){Text("لا توجد جمعيات بعد. ابدأ بإنشاء جمعية جديدة.",Modifier.padding(18.dp),textAlign=TextAlign.Center)}}
+ }
+}@Composable fun Assoc(xs:List<JamAssociation>,open:(JamAssociation)->Unit){
  Text("الجمعيات",style=MaterialTheme.typography.headlineSmall)
  LazyColumn{items(xs){z->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(10.dp)){Text(z.name);Text("الأعضاء: "+z.memberCount+" | الدورات: "+z.cycleCount);TextButton({open(z)}){Text("إدارة")}}}}}
 }
