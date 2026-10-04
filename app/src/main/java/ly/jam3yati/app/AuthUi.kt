@@ -161,6 +161,7 @@ private fun SubscriptionScreen(repo: AuthRepository, onRefresh: suspend () -> Un
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var message by remember { mutableStateOf("") }
+    val paymentRepo = remember { PaymentRepository(repo) }
 
     Box(Modifier.fillMaxSize().padding(22.dp), contentAlignment = Alignment.Center) {
         Card(shape = RoundedCornerShape(26.dp)) {
@@ -184,7 +185,15 @@ private fun SubscriptionScreen(repo: AuthRepository, onRefresh: suspend () -> Un
 
                 Button(
                     onClick = {
-                        message = "واجهة الدفع جاهزة، لكن يجب ربط حساب التاجر في بوابة الدفع قبل تفعيل التحصيل الحقيقي."
+                        scope.launch {
+                            message = ""
+                            try {
+                                val checkoutUrl = paymentRepo.createCheckoutUrl()
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(checkoutUrl)))
+                            } catch (e: Exception) {
+                                message = e.message ?: "تعذر بدء عملية الدفع"
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(14.dp)
