@@ -43,7 +43,7 @@ begin
     user_id, plan, status, trial_started_at, trial_ends_at, amount, currency
   )
   values (
-    new.id, 'pro', 'trialing', now(), now() + interval '90 days', 0, 'LYD'
+    new.id, 'pro', 'trialing', now(), now() + interval '90 days', 10, 'LYD'
   )
   on conflict (user_id) do nothing;
 
@@ -54,7 +54,7 @@ $function$;
 insert into public.subscriptions (
   user_id, plan, status, trial_started_at, trial_ends_at, amount, currency
 )
-select p.id, 'pro', 'trialing', now(), now() + interval '90 days', 0, 'LYD'
+select p.id, 'pro', 'trialing', now(), now() + interval '90 days', 10, 'LYD'
 from public.profiles p
 left join public.subscriptions s on s.user_id = p.id
 where s.user_id is null;
