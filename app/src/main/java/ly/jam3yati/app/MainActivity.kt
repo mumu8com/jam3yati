@@ -13,8 +13,37 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
 import androidx.work.*
 import java.util.concurrent.TimeUnit
+
+private val JamPrimary = Color(0xFF126B5A)
+private val JamPrimaryContainer = Color(0xFFD0F0E7)
+private val JamBackground = Color(0xFFF7F8FA)
+
+@Composable
+fun Jam3yatiTheme(content:@Composable ()->Unit){
+ MaterialTheme(
+  colorScheme=lightColorScheme(
+   primary=JamPrimary,
+   primaryContainer=JamPrimaryContainer,
+   onPrimaryContainer=Color(0xFF002019),
+   background=JamBackground,
+   surface=JamBackground,
+   surfaceVariant=Color(0xFFE8ECEB),
+   onSurface=Color(0xFF17201D),
+   onSurfaceVariant=Color(0xFF59635F)
+  ),
+  shapes=Shapes(
+   small=RoundedCornerShape(10.dp),
+   medium=RoundedCornerShape(16.dp),
+   large=RoundedCornerShape(22.dp)
+  ),
+  content=content
+ )
+}
 
 class MainActivity:ComponentActivity(){
  override fun onCreate(b:Bundle?){
@@ -44,10 +73,16 @@ class MainActivity:ComponentActivity(){
  var create by remember{mutableStateOf(false)}
  LaunchedEffect(refresh){xs=r.associations()}
  Scaffold(
-  topBar={TopAppBar(title={Text(a?.name?:"جمعياتي — دون إنترنت")})},
-  bottomBar={NavigationBar{
+  topBar={CenterAlignedTopAppBar(
+ title={Column(horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally){
+  Text(a?.name?:"جمعياتي",fontWeight=FontWeight.Bold)
+  if(a==null) Text("إدارة الجمعيات المالية",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+ }},
+ colors=TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor=MaterialTheme.colorScheme.surface)
+)},
+  bottomBar={NavigationBar(containerColor=MaterialTheme.colorScheme.surface,tonalElevation=3.dp){
    listOf("الرئيسية","الجمعيات","الأعضاء","الدفعات").forEachIndexed{i,t->
-    NavigationBarItem(selected=tab==i,onClick={tab=i},icon={},label={Text(t)})
+    NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Text(listOf("⌂","▣","♙","✓")[i],fontWeight=FontWeight.Bold)},label={Text(t)})
    }
   }}
  ){p->
