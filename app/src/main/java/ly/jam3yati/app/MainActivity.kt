@@ -104,7 +104,7 @@ class MainActivity:ComponentActivity(){
 }
 @Composable fun Pay(r:SupabaseRepository,i:JamInstallment,done:()->Unit,cancel:()->Unit){
  var amount by remember{mutableStateOf((i.amount-i.paidAmount).toString())};var msg by remember{mutableStateOf("")}
- AlertDialog(onDismissRequest=cancel,title={Text("تسجيل دفعة")},text={Column{OutlinedTextField(amount,{amount=it},label={Text("المبلغ")});Text(msg)}},confirmButton={TextButton({val n=amount.toDoubleOrNull();if(n==null||n<=0){msg="مبلغ غير صحيح";return@TextButton};val x=r.recordPayment(i.id,i.memberId,n,null);msg="تم التسجيل: "+x.receiptNo;done()}){Text("حفظ")}},dismissButton={TextButton(cancel){Text("إلغاء")}})
+ AlertDialog(onDismissRequest=cancel,title={Text("تسجيل دفعة")},text={Column{OutlinedTextField(amount,{amount=it},label={Text("المبلغ")});Text(msg)}},confirmButton={TextButton({val n=amount.toDoubleOrNull();if(n==null||n<=0){msg="مبلغ غير صحيح";return@TextButton};runCatching { r.recordPayment(i.id,i.memberId,n,null) }.onSuccess { x -> msg="تم التسجيل: "+x.receiptNo; done() }.onFailure { e -> msg=e.message ?: "تعذر تسجيل الدفعة" }}){Text("حفظ")}},dismissButton={TextButton(cancel){Text("إلغاء")}})
 }
 @Composable fun CreateAssociation(r:SupabaseRepository,done:()->Unit,cancel:()->Unit){
  var name by remember{mutableStateOf("")};var amount by remember{mutableStateOf("")};var members by remember{mutableStateOf("")};var cycles by remember{mutableStateOf("")};var start by remember{mutableStateOf(java.time.LocalDate.now().toString())};var msg by remember{mutableStateOf("")}
