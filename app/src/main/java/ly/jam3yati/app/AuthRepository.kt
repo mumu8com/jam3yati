@@ -37,7 +37,7 @@ data class JamSubscription(
 class AuthRepository {
     val client = JamSupabase.client
 
-    suspend fun currentUser(): Any? = client.auth.currentUserOrNull()
+    suspend fun isSignedIn(): Boolean = client.auth.currentUserOrNull() != null
 
     suspend fun signIn(email: String, password: String) {
         require(email.isNotBlank()) { "أدخل البريد الإلكتروني" }
@@ -67,7 +67,7 @@ class AuthRepository {
     }
 
     suspend fun subscription(): JamSubscription? {
-        val user = currentUser() ?: return null
+        val user = client.auth.currentUserOrNull() ?: return null
         return runCatching {
             client.postgrest["subscriptions"]
                 .select { eq("user_id", user.id) }
