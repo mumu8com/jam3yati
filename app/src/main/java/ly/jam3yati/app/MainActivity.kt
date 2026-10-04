@@ -133,6 +133,22 @@ fun Dashboard(r:SupabaseRepository,associations:List<JamAssociation>,refresh:Int
    }
   }
   item{
+   val allInstallments=associations.flatMap{r.installments(it.id)}
+   val next=allInstallments.filter{it.status!="paid"}.minByOrNull{it.dueDate}
+   val days=next?.let{runCatching{java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(),LocalDate.parse(it.dueDate))}.getOrNull()}
+   Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=JamBlueContainer)){
+    Row(Modifier.padding(18.dp),verticalAlignment=Alignment.CenterVertically){
+     Surface(shape=CircleShape,color=Color.White.copy(alpha=.8f)){Icon(Icons.Filled.Schedule,null,Modifier.padding(11.dp),tint=JamBlue)}
+     Spacer(Modifier.width(12.dp))
+     Column(Modifier.weight(1f)){
+      Text("الدفعة القادمة",style=MaterialTheme.typography.labelMedium,color=JamBlue)
+      Text(if(next==null)"لا توجد دفعات قادمة" else next.memberName+" • "+money((next.amount-next.paidAmount).coerceAtLeast(0.0)),fontWeight=FontWeight.Bold)
+      if(next!=null)Text("الاستحقاق: "+next.dueDate+" • "+daysText(days?:0),style=MaterialTheme.typography.bodySmall,color=JamBlue)
+     }
+    }
+   }
+  }
+  item{
    Row(horizontalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.fillMaxWidth()){
     MetricCard(Modifier.weight(1f),"المبالغ المدفوعة",stats.paid,Icons.Filled.CheckCircle,JamPrimaryContainer,JamPrimary)
     MetricCard(Modifier.weight(1f),"الجمعيات",associations.size,Icons.Filled.Groups,JamGoldContainer,JamGold)
@@ -146,6 +162,8 @@ fun Dashboard(r:SupabaseRepository,associations:List<JamAssociation>,refresh:Int
  }
 }
 
+fun daysText(days:Long):String=when{days<0->"متأخرة ${-days} يوم";days==0L->"اليوم";days==1L->"غدًا";else->"بعد $days يوم"}
+
 @Composable
 fun MetricCard(modifier:Modifier,title:String,value:Int,icon:androidx.compose.ui.graphics.vector.ImageVector,container:Color,content:Color){
  Card(modifier,shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=container)){
@@ -157,7 +175,7 @@ fun MetricCard(modifier:Modifier,title:String,value:Int,icon:androidx.compose.ui
 fun AssociationCompact(a:JamAssociation,open:(JamAssociation)->Unit){
  Row(Modifier.fillMaxWidth().padding(vertical=8.dp),verticalAlignment=Alignment.CenterVertically){
   Surface(shape=RoundedCornerShape(12.dp),color=JamPrimaryContainer){Icon(Icons.Filled.AccountBalanceWallet,null,Modifier.padding(9.dp),tint=JamPrimary)}
-  Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text(a.name,fontWeight=FontWeight.Bold);Text("${a.memberCount} أعضاء • ${a.cycleCount} دورات • ${money(a.installment)}",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+  Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text(a.name,fontWeight=FontWeight.Bold);Text("${a.memberCount} أعضاء • ${a.cycleCount} دورات • ${money(a.installment)}",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant);Text("إجمالي الجمعية: ${money(a.installment*a.memberCount*a.cycleCount)}",style=MaterialTheme.typography.labelSmall);Text("المتبقي: افتح الجمعية لمعرفة الرصيد الحالي",style=MaterialTheme.typography.labelSmall,color=JamRed)}
   TextButton({open(a)}){Text("فتح")}
  }
 }
