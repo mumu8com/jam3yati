@@ -168,7 +168,7 @@ private fun SubscriptionScreen(repo: AuthRepository, onRefresh: suspend () -> Un
             Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Icon(Icons.Filled.CreditCard, null, Modifier.size(52.dp), tint = AuthPrimary)
                 Text("انتهت الفترة المجانية", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("استمر في استخدام جمعياتي بعد انتهاء الـ90 يومًا عن طريق تفعيل الاشتراك المدفوع.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("استمر في استخدام جمعياتي بعد انتهاء الـ90 يومًا مقابل 10 د.ل لمدة 3 أشهر.", color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5F1))) {
                     Column(Modifier.padding(16.dp)) {
@@ -176,8 +176,8 @@ private fun SubscriptionScreen(repo: AuthRepository, onRefresh: suspend () -> Un
                             Icon(Icons.Filled.AccountBalance, null, tint = AuthPrimary)
                             Spacer(Modifier.width(10.dp))
                             Column {
-                                Text("الدفع المحلي", fontWeight = FontWeight.Bold)
-                                Text("بطاقة مصرفية ليبية عبر بوابة دفع معتمدة", style = MaterialTheme.typography.bodySmall)
+                                Text("10 د.ل / 3 أشهر", fontWeight = FontWeight.Bold)
+                                Text("الدفع بالبطاقة المصرفية الليبية عبر بوابة دفع معتمدة", style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
