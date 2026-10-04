@@ -2,7 +2,6 @@ package ly.jam3yati.app
 
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.providers.Email
-import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.auth.FlowType
@@ -38,7 +37,7 @@ data class JamSubscription(
 class AuthRepository {
     val client = JamSupabase.client
 
-    suspend fun currentUser(): UserInfo? = client.auth.currentUserOrNull()
+    suspend fun currentUser(): Any? = client.auth.currentUserOrNull()
 
     suspend fun signIn(email: String, password: String) {
         require(email.isNotBlank()) { "أدخل البريد الإلكتروني" }
