@@ -220,6 +220,26 @@ fun PaymentsScreen(r:SupabaseRepository,a:JamAssociation?,changed:()->Unit){
  Scaffold(floatingActionButton={if(xs.isEmpty())FloatingActionButton({try{r.generateSchedule(a.id);xs=r.installments(a.id);msg="تم إنشاء جدول ${xs.size} استحقاق"}catch(e:Exception){msg=e.message?:"تعذر إنشاء الجدول"}},containerColor=JamPrimary,contentColor=Color.White){Icon(Icons.Filled.CalendarMonth,"إنشاء الجدول")}}){p->
   LazyColumn(Modifier.padding(p),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
    item{Text("الاستحقاقات والدفعات",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text("جدول واضح لمتابعة كل عضو وكل دورة",color=MaterialTheme.colorScheme.onSurfaceVariant)}
+   item{
+    val total=a.installment*a.memberCount*a.cycleCount
+    val collected=xs.sumOf{it.paidAmount}
+    val remaining=(total-collected).coerceAtLeast(0.0)
+    val next=xs.filter{it.status!="paid"}.minByOrNull{it.dueDate}
+    val days=next?.let{runCatching{java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(),LocalDate.parse(it.dueDate))}.getOrNull()}
+    Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=JamPrimaryContainer)){
+     Column(Modifier.padding(16.dp)){
+      Text("ملخص الجمعية",fontWeight=FontWeight.Bold,color=JamPrimary)
+      Spacer(Modifier.height(8.dp))
+      Row(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.fillMaxWidth()){
+       SummaryAmount(Modifier.weight(1f),"إجمالي الجمعية",total)
+       SummaryAmount(Modifier.weight(1f),"المتبقي",remaining)
+      }
+      Spacer(Modifier.height(8.dp))
+      if(next!=null)Text("الدفعة القادمة: ${next.memberName} • ${money((next.amount-next.paidAmount).coerceAtLeast(0.0))} • ${next.dueDate} • ${daysText(days?:0)}",style=MaterialTheme.typography.bodySmall,color=JamPrimary)
+      else Text("تم سداد جميع الاستحقاقات",style=MaterialTheme.typography.bodySmall,color=JamPrimary)
+     }
+    }
+   }
    item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Filter("الكل",filter=="all"){filter="all"};Filter("القادمة",filter=="upcoming"){filter="upcoming"};Filter("متأخرة",filter=="overdue"){filter="overdue"};Filter("مدفوعة",filter=="paid"){filter="paid"}}}
    if(xs.isEmpty())item{Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(20.dp),horizontalAlignment=Alignment.CenterHorizontally){Icon(Icons.Filled.CalendarMonth,null,Modifier.size(42.dp),tint=JamPrimary);Spacer(Modifier.height(8.dp));Text("لم يتم إنشاء جدول الاستحقاقات",fontWeight=FontWeight.Bold);Text("أضف جميع الأعضاء ثم اضغط إنشاء الجدول.",textAlign=TextAlign.Center,color=MaterialTheme.colorScheme.onSurfaceVariant);Spacer(Modifier.height(12.dp));Button({try{r.generateSchedule(a.id);xs=r.installments(a.id);msg="تم إنشاء الجدول"}catch(e:Exception){msg=e.message?:"تعذر إنشاء الجدول"}}){Text("إنشاء الجدول")};if(msg.isNotBlank())Text(msg,color=JamRed,modifier=Modifier.padding(top=8.dp))}}}
    else{
@@ -231,6 +251,8 @@ fun PaymentsScreen(r:SupabaseRepository,a:JamAssociation?,changed:()->Unit){
  }
  if(pay!=null)Pay(r,pay!!,{pay=null;xs=r.installments(a.id);changed()},{pay=null})
 }
+
+@Composable fun SummaryAmount(modifier:Modifier,label:String,value:Double){Column(modifier){Text(label,style=MaterialTheme.typography.labelSmall);Text(money(value),fontWeight=FontWeight.Bold)}}
 
 @Composable fun Filter(label:String,selected:Boolean,onClick:()->Unit){FilterChip(selected=selected,onClick=onClick,label={Text(label)},shape=RoundedCornerShape(50))}
 
