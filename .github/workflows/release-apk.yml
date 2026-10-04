@@ -67,16 +67,16 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/Jam3yati-v2.0.0-offline-release.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/Jam3yati-v2.2.0-subscription-release.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Jam3yati-APK
-          path: dist/Jam3yati-v2.0.0-offline-release.apk
+          path: dist/Jam3yati-v2.2.0-subscription-release.apk
           retention-days: 30
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: dist/Jam3yati-v2.0.0-offline-release.apk
+          files: dist/Jam3yati-v2.2.0-subscription-release.apk
