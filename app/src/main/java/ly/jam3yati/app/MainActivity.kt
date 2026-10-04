@@ -53,7 +53,7 @@ private val JamBlue=Color(0xFF315A8A)
 private val JamBlueContainer=Color(0xFFDCEBFF)
 
 @Composable
-fun Jam3yatiTheme(content:@Composable()->Unit){
+fun Jam3yatiTheme(content: @Composable () -> Unit){
  MaterialTheme(
   colorScheme=lightColorScheme(primary=JamPrimary,onPrimary=Color.White,primaryContainer=JamPrimaryContainer,onPrimaryContainer=Color(0xFF002019),background=JamBackground,surface=Color.White,surfaceVariant=Color(0xFFE7ECEA),onSurface=Color(0xFF17201D),onSurfaceVariant=Color(0xFF59635F),error=JamRed,errorContainer=JamRedContainer),
   shapes=Shapes(small=RoundedCornerShape(10.dp),medium=RoundedCornerShape(16.dp),large=RoundedCornerShape(22.dp)),content=content)
