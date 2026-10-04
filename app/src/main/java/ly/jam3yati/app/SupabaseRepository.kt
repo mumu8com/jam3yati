@@ -98,5 +98,20 @@ class SupabaseRepository(context:Context){
   val a=JamAssociation(UUID.randomUUID().toString(),name.trim(),amount,"monthly",members,cycles);val x=arr("associations")
   x.put(JSONObject().put("id",a.id).put("name",a.name).put("installment",a.installment).put("frequency",a.frequency).put("memberCount",a.memberCount).put("cycleCount",a.cycleCount));save("associations",x);prefs.edit().putString("start_"+a.id,parsed.toString()).apply();return a
  }
+ fun associationTotal(associationId:String):Double{
+  val a=associations().firstOrNull{it.id==associationId} ?: return 0.0
+  return a.installment*a.memberCount*a.cycleCount
+ }
+ fun associationCollected(associationId:String):Double=installments(associationId).sumOf{it.paidAmount}
+ fun associationOutstanding(associationId:String):Double=(associationTotal(associationId)-associationCollected(associationId)).coerceAtLeast(0.0)
+ fun nextDue(associationId:String):JamInstallment?{
+  val today=LocalDate.now()
+  return installments(associationId).filter{it.status!="paid"}.minByOrNull{it.dueDate}
+ }
+ fun daysUntilNextDue(associationId:String):Long{
+  val next=nextDue(associationId) ?: return 0L
+  val due=runCatching{LocalDate.parse(next.dueDate)}.getOrNull() ?: return 0L
+  return java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(),due)
+ }
  fun exportJson():String=JSONObject().put("associations",arr("associations")).put("members",arr("members")).put("installments",arr("installments")).put("exportedAt",System.currentTimeMillis()).toString(2)
 }
