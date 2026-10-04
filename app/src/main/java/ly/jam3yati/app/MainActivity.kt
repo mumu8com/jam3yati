@@ -21,7 +21,7 @@ class MainActivity:ComponentActivity(){
   super.onCreate(b)
   if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
    registerForActivityResult(ActivityResultContracts.RequestPermission()){ }.launch(Manifest.permission.POST_NOTIFICATIONS)
-  setContent{App()}
+  setContent{Jam3yatiTheme{App()}}
  }
 }
 
