@@ -14,23 +14,68 @@ class PaymentReminderWorker(appContext: Context, params: WorkerParameters) : Cor
             val repo = SupabaseRepository(applicationContext)
             if (!repo.isSignedIn()) return Result.success()
             val today = LocalDate.now()
+
             repo.associations().forEach { association ->
-                repo.installments(association.id).filter { it.status != "paid" }.filter {
+                val items = repo.installments(association.id).filter { it.status != "paid" }
+                items.filter {
                     val due = runCatching { LocalDate.parse(it.dueDate) }.getOrNull() ?: return@filter false
-                    !due.isBefore(today) && !due.isAfter(today.plusDays(1))
-                }.take(3).forEach { item ->
-                    val body = item.memberName.ifBlank { "عضو" } + " - " + association.name + ": " + (item.amount - item.paidAmount) + " دينار، الاستحقاق " + item.dueDate
-                    notify("موعد دفعة قريب", body)
+                    due.isAfter(today) && !due.isAfter(today.plusDays(3))
+                }.take(5).forEach { item ->
+                    val due = LocalDate.parse(item.dueDate)
+                    notify(
+                        "استحقاق قادم",
+                        association.name + " • " + item.memberName + ": " +
+                            moneyText(item.amount - item.paidAmount) + " د.ل، الموعد " + item.dueDate,
+                        item.id.hashCode()
+                    )
+                }
+
+                items.filter {
+                    val due = runCatching { LocalDate.parse(it.dueDate) }.getOrNull() ?: return@filter false
+                    due.isEqual(today)
+                }.take(5).forEach { item ->
+                    notify(
+                        "موعد الدفع اليوم",
+                        association.name + " • " + item.memberName + ": المتبقي " +
+                            moneyText(item.amount - item.paidAmount) + " د.ل",
+                        (item.id.hashCode() * 31) + 1
+                    )
+                }
+
+                items.filter {
+                    val due = runCatching { LocalDate.parse(it.dueDate) }.getOrNull() ?: return@filter false
+                    due.isBefore(today)
+                }.take(5).forEach { item ->
+                    notify(
+                        "دفعة متأخرة",
+                        association.name + " • " + item.memberName + ": متأخر عن موعد " +
+                            item.dueDate + "، المتبقي " + moneyText(item.amount - item.paidAmount) + " د.ل",
+                        (item.id.hashCode() * 31) + 2
+                    )
                 }
             }
             Result.success()
-        } catch (_: Exception) { Result.retry() }
+        } catch (_: Exception) {
+            Result.retry()
+        }
     }
-    private fun notify(title: String, body: String) {
+
+    private fun moneyText(value: Double): String =
+        String.format(java.util.Locale.US, "%.2f", value.coerceAtLeast(0.0))
+
+    private fun notify(title: String, body: String, id: Int) {
         val manager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "payment_due"
-        manager.createNotificationChannel(NotificationChannel(channelId, "تنبيهات الدفعات", NotificationManager.IMPORTANCE_DEFAULT))
-        val notification = NotificationCompat.Builder(applicationContext, channelId).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(title).setContentText(body).setAutoCancel(true).build()
-        manager.notify((System.currentTimeMillis() % Int.MAX_VALUE).toInt(), notification)
+        manager.createNotificationChannel(
+            NotificationChannel(channelId, "تنبيهات الدفعات", NotificationManager.IMPORTANCE_DEFAULT)
+        )
+        val notification = NotificationCompat.Builder(applicationContext, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setAutoCancel(true)
+            .build()
+        manager.notify(kotlin.math.abs(id), notification)
     }
 }
