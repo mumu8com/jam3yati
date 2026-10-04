@@ -33,7 +33,7 @@ fun AuthGate(content: @Composable () -> Unit) {
 
     suspend fun refresh() {
         loading = true
-        signedIn = repo.currentUser() != null
+        signedIn = repo.isSignedIn()
         subscription = if (signedIn) repo.subscription() else null
         loading = false
     }
